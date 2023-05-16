@@ -1,0 +1,38 @@
+Pathways <- function(selectedpath){
+    M <- MultiAssayExperiment()
+    M <- reduceWiki(MAE = M, path_data = assay(MAE2, 3),
+                        stringWiki = selectedpath)
+    M <- wikiMrna(M, mRNA_express = assay(MAE2, 5),
+                      singleWiki = assay(M, 1),
+                      stringWiki = selectedpath)
+    M <- suppressMessages(mirMrnaInt(MAE = M, miR_express = assay(MAE2, 4),
+                                         GenesofInterest = assay(M, 2), maxInt = 5))
+    M <- dataMiningMatrix(MAE = M,
+                              corrTable = assay(M, 3),
+                              targetscan = assay(MAE2, 6),
+                              mirdb = assay(MAE2, 7),
+                              mirtarbase = assay(MAE2, 8))
+    # Mine out pairs that are "likely" to occur
+    M <- matrixFilter(MAE = M, miningMatrix = assay(M, 4),
+                          negativeOnly = FALSE, predictedOnly = TRUE, 
+                          threshold = 2, maxCor = -0.75)
+    return(M)
+}
+
+plotPaths <- function(M, imagename){
+    p <- quickPathwayTC(filt_df = M[[5]], miRNA_exp = MAE2[[4]], 
+                        mRNA_exp = MAE2[[5]], morethan = TRUE, threshold = 1, 
+                        pathwayname = imagename)
+    tiff(paste0("TC/", imagename, ".tif"), units="in", width=3.2, height=3, res=300)
+    show(p)
+    dev.off()
+}
+
+plotEnrich <- function(MAE, select, day){
+    p <- quickBar(X = metadata(MAE2)[[1]][[select]],
+                  Y = names(metadata(MAE2)[[1]][select]),N=10)
+    svg(paste0("enrich/", day, ".svg"), width=18, height=8)
+    show(p)
+    dev.off()
+}
+
